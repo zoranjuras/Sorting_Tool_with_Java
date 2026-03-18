@@ -1,0 +1,7 @@
+# Project exclude paths
+/.gradle/
+/build/
+/Sorting Tool with Java/task/build/
+/Sorting Tool with Java/task/out/
+/Sorting Tool with Java/task/out/production/classes/
+/util/build/

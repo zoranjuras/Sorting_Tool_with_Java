@@ -18,48 +18,60 @@ public class Main {
 
         switch (dataType) {
             case "long":
-                List<Long> numbersList = parseNumbers(inputLines);
-                numbersList.sort(null);
-                int numbersCount = numbersList.size();
-                long maxNumber = numbersList.getLast();
-                int occurrences = Collections.frequency(numbersList, maxNumber);
-                int percentage = (int) Math.round((double) occurrences / numbersCount * 100);
-
-                System.out.printf("Total numbers: %d.%n", numbersCount);
-                System.out.printf("The greatest number: %d (%d time(s), %d%%).%n", maxNumber, occurrences, percentage);
-
+                processLongs(inputLines);
                 break;
+
             case "word":
-                List<String> wordsList = parseWords(inputLines);
-                wordsList.sort(Comparator.comparingInt(String::length));
-                int wordsCount = wordsList.size();
-                String maxWord = wordsList.getLast();
-                int wordOccurrences = Collections.frequency(wordsList, maxWord);
-                int wordPercentage = (int) Math.round((double) wordOccurrences / wordsCount * 100);
-
-                System.out.printf("Total words: %d.%n", wordsCount);
-                System.out.printf("The longest word: %s (%d time(s), %d%%).%n", maxWord, wordOccurrences, wordPercentage);
+                processWords(inputLines);
                 break;
+
             case "line":
-                List<String> linesList = inputLines;
-                linesList.sort(Comparator.comparingInt(String::length));
-                int linesCount = linesList.size();
-                String maxLine = linesList.getLast();
-                int linesOccurrences = Collections.frequency(linesList, maxLine);
-                int linesPercentage = (int) Math.round((double) linesOccurrences / linesCount * 100);
-
-                System.out.printf("Total lines: %d.%n", linesCount);
-                System.out.printf("The longest line:%n%s%n(%d time(s), %d%%).%n", maxLine, linesOccurrences, linesPercentage);
-
-                break;
-            default:
-                // Defensive fallback; args are already validated above.
+                processLines(inputLines);
                 break;
         }
+    }
 
+    private static void processLongs(List<String> inputLines) {
+
+        List<Long> numbersList = parseNumbers(inputLines);
+        numbersList.sort(null);
+        int numbersCount = numbersList.size();
+        long maxNumber = numbersList.getLast();
+        int occurrences = Collections.frequency(numbersList, maxNumber);
+        int percentage = (int) Math.round((double) occurrences / numbersCount * 100);
+
+        System.out.printf("Total numbers: %d.%n", numbersCount);
+        System.out.printf("The greatest number: %s (%d time(s), %d%%).%n", maxNumber, occurrences, percentage);
+    }
+
+    private static void processWords(List<String> inputLines) {
+
+        List<String> wordsList = parseWords(inputLines);
+        wordsList.sort(Comparator.comparingInt(String::length));
+        int wordsCount = wordsList.size();
+        String maxLengthWord = wordsList.getLast();
+        int wordOccurrences = Collections.frequency(wordsList, maxLengthWord);
+        int wordPercentage = (int) Math.round((double) wordOccurrences / wordsCount * 100);
+
+        System.out.printf("Total words: %d.%n", wordsCount);
+        System.out.printf("The longest word: %s (%d time(s), %d%%).%n", maxLengthWord, wordOccurrences, wordPercentage);
+    }
+
+    private static void processLines(List<String> inputLines) {
+
+        List<String> linesList = new ArrayList<>(inputLines);
+        linesList.sort(Comparator.comparingInt(String::length));
+        int linesCount = linesList.size();
+        String maxLengthLine = linesList.getLast();
+        int linesOccurrences = Collections.frequency(linesList, maxLengthLine);
+        int linesPercentage = (int) Math.round((double) linesOccurrences / linesCount * 100);
+
+        System.out.printf("Total lines: %d.%n", linesCount);
+        System.out.printf("The longest line:%n%s%n(%d time(s), %d%%).%n", maxLengthLine, linesOccurrences, linesPercentage);
     }
 
     private static List<String> extractTokens(List<String> lines) {
+
         List<String> result = new ArrayList<>();
         for (String line : lines) {
             if (!line.isBlank()) {
@@ -76,17 +88,18 @@ public class Main {
     }
 
     private static List<Long> parseNumbers(List<String> lines) {
+
         List<Long> longs = new ArrayList<>();
         List<String> tokens = extractTokens(lines);
 
         for (String token : tokens) {
             longs.add(Long.parseLong(token));
         }
-
         return longs;
     }
 
     static List<String> readInputLines(Scanner scanner) {
+
         List<String> lines = new ArrayList<>();
         while (scanner.hasNextLine()) {
             lines.add(scanner.nextLine());
