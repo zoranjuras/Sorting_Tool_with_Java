@@ -6,53 +6,28 @@ public class Main {
 
     public static void main(final String[] args) {
 
+        if (args.length != 2 || !args[0].equals("-dataType")
+                || !(args[1].equals("long") || args[1].equals("line") || args[1].equals("word"))) {
+            System.out.println("Usage: java SortingTool -dataType [long|line|word]");
+            return;
+        }
+
+        String dataType = args[1];
         Scanner scanner = new Scanner(System.in);
         List<String> inputLines = readInputLines(scanner);
 
-        if (hasArgument(args, "-sortIntegers")) {
-            sortAndCountIntegers(inputLines);
-            return;
-        }
-
-        String dataType = getDataType(args);
-
-        if (dataType == null) {
-            System.out.println("Wrong usage, explanation blablabla...");
-            return;
-        }
-
         switch (dataType) {
-            case "long" -> processLongs(inputLines);
-            case "word" -> processWords(inputLines);
-            case "line" -> processLines(inputLines);
-            default -> System.out.println("Wrong data type!");
-        }
-    }
-
-    private static String getDataType(String[] args) {
-        String dataType = null;
-        for (int i = 0; i < args.length - 1; i++) {
-            if (args[i].equals("-dataType")) {
-                dataType = args[i + 1];
+            case "long":
+                processLongs(inputLines);
                 break;
-            }
-        }
-        return dataType;
-    }
 
-    private static boolean hasArgument(String[] args, String argument) {
-        return Arrays.asList(args).contains(argument);
-    }
+            case "word":
+                processWords(inputLines);
+                break;
 
-    private static void sortAndCountIntegers(List<String> inputLines) {
-
-        List<Long> numbersList = parseNumbers(inputLines);
-        numbersList.sort(null);
-        int numbersCount = numbersList.size();
-        System.out.printf("Total numbers: %d.%n", numbersCount);
-        System.out.print("Sorted data:");
-        for (Long number : numbersList) {
-            System.out.print(" " + number);
+            case "line":
+                processLines(inputLines);
+                break;
         }
     }
 
