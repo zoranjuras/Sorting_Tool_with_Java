@@ -1,0 +1,15 @@
+type: edu
+custom_name: X-files
+files:
+  - name: src/sorting/Main.java
+    visible: true
+    learner_created: false
+  - name: build.gradle
+    visible: true
+    learner_created: false
+  - name: test/common/SortingToolStage6Test.kt
+    visible: false
+    learner_created: false
+feedback_link: https://hyperskill.org/projects/45/stages/244/implement#comment
+status: Unchecked
+record: -1
