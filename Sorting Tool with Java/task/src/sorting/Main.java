@@ -1,17 +1,19 @@
 package sorting;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.util.*;
 
 public class Main {
     private static final String[] VALID_DATA_TYPES = {"long", "word", "line"};
     private static final String[] VALID_SORTING_TYPES = {"natural", "byCount"};
 
-    private record Arguments(String dataType, String sortingType) {}
+    private record Arguments(String dataType, String sortingType, String inputFile, String outputFile) {}
 
     public static void main(final String[] args) {
 
         Scanner scanner = new Scanner(System.in);
-        List<String> inputLines = readInputLines(scanner);
 
         Optional<Arguments> argumentsOptional = getArguments(args);
         if (argumentsOptional.isEmpty()) {
@@ -19,11 +21,12 @@ public class Main {
         }
 
         Arguments arguments = argumentsOptional.get();
+        List<String> inputLines = readInputLines(scanner, arguments.inputFile());
 
         switch (arguments.dataType()) {
-            case "long" -> processLongs(inputLines, arguments.sortingType());
-            case "word" -> processWords(inputLines, arguments.sortingType());
-            case "line" -> processLines(inputLines, arguments.sortingType());
+            case "long" -> processLongs(inputLines, arguments.sortingType(), arguments.outputFile());
+            case "word" -> processWords(inputLines, arguments.sortingType(), arguments.outputFile());
+            case "line" -> processLines(inputLines, arguments.sortingType(), arguments.outputFile());
             default -> System.out.println("Wrong data type!");
         }
     }
@@ -34,6 +37,8 @@ public class Main {
 
         String dataType = "word";
         String sortingType = "natural";
+        String inputFile = null;
+        String outputFile = null;
 
         for (int i = 0; i < args.length - 1; i++) {
             if ("-dataType".equals(args[i])) {
@@ -52,11 +57,17 @@ public class Main {
                     System.out.println("No sorting type defined!");
                     return Optional.empty();
                 }
+            } else if ("-inputFile".equals(args[i])) {
+                inputFile = args[i + 1];
+                i++;
+            } else if ("-outputFile".equals(args[i])) {
+                outputFile = args[i + 1];
+                i++;
             } else {
                 System.out.printf("\"%s\" is not a valid parameter. It will be skipped.%n", args[i]);
             }
         }
-        return Optional.of(new Arguments(dataType, sortingType));
+        return Optional.of(new Arguments(dataType, sortingType, inputFile, outputFile));
     }
 
     private static <T extends Comparable<? super T>> void printNaturalSorting(List<T> data, String label) {
@@ -66,6 +77,19 @@ public class Main {
         System.out.print("Sorted data:");
         for (T element : data) {
             System.out.print(" " + element);
+        }
+    }
+
+    private static <T extends Comparable<? super T>> void printNaturalSortingToFile(List<T> data, String label, String outputFile) {
+        try (PrintWriter writer = new PrintWriter(new File(outputFile))) {
+            int elementsCount = data.size();
+            writer.printf("Total %s: %d.%n", label, elementsCount);
+            writer.print("Sorted data:");
+            for (T element : data) {
+                writer.print(" " + element);
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: " + e.getMessage());
         }
     }
 
@@ -97,31 +121,86 @@ public class Main {
         }
     }
 
-    private static void processLongs(List<String> inputLines, String sortingType) {
+    private static <T extends Comparable<? super T>> void printByCountSortingToFile(List<T> data, String label, String outputFile) {
+        try (PrintWriter writer = new PrintWriter(new File(outputFile))) {
+            int elementsCount = data.size();
 
-        if ("natural".equals(sortingType)) {
-            printNaturalSorting(parseAndSortNumbers(inputLines), "numbers");
-            return;
+            Map<T, Integer> elementsMap = new HashMap<>();
+
+            for (T element : data) {
+                elementsMap.put(element, elementsMap.getOrDefault(element, 0) + 1);
+            }
+
+            List<Map.Entry<T, Integer>> entries = new ArrayList<>(elementsMap.entrySet());
+
+            entries.sort(
+                    Comparator.comparing(Map.Entry<T, Integer>::getValue)
+                            .thenComparing(Map.Entry::getKey)
+            );
+
+            writer.printf("Total %s: %d.%n", label, elementsCount);
+
+            for (Map.Entry<T, Integer> entry : entries) {
+                T element = entry.getKey();
+                int count = entry.getValue();
+                int percentage = (int) Math.round((double) count / elementsCount * 100);
+
+                writer.println(element + ": " + count + " time(s), " + percentage + "%");
+            }
+        } catch (FileNotFoundException e) {
+            System.out.println("Error: " + e.getMessage());
         }
-        printByCountSorting(parseAndSortNumbers(inputLines), "numbers");
     }
 
-    private static void processWords(List<String> inputLines, String sortingType) {
+    private static void processLongs(List<String> inputLines, String sortingType, String outputFile) {
 
         if ("natural".equals(sortingType)) {
-            printNaturalSorting(parseWords(inputLines), "words");
+            if (outputFile == null) {
+                printNaturalSorting(parseAndSortNumbers(inputLines), "numbers");
+            } else {
+                printNaturalSortingToFile(parseAndSortNumbers(inputLines), "numbers", outputFile);
+            }
             return;
         }
-        printByCountSorting(parseWords(inputLines), "words");
+        if (outputFile == null) {
+            printByCountSorting(parseAndSortNumbers(inputLines), "numbers");
+        } else {
+            printByCountSortingToFile(parseAndSortNumbers(inputLines), "numbers", outputFile);
+        }
     }
 
-    private static void processLines(List<String> inputLines, String sortingType) {
+    private static void processWords(List<String> inputLines, String sortingType, String outputFile) {
 
         if ("natural".equals(sortingType)) {
-            printNaturalSorting(inputLines, "lines");
+            if (outputFile == null) {
+                printNaturalSorting(parseWords(inputLines), "words");
+            } else {
+                printNaturalSortingToFile(parseWords(inputLines), "words", outputFile);
+            }
             return;
         }
-        printByCountSorting(inputLines, "lines");
+        if (outputFile == null) {
+            printByCountSorting(parseWords(inputLines), "words");
+        } else {
+            printByCountSortingToFile(parseWords(inputLines), "words", outputFile);
+        }
+    }
+
+    private static void processLines(List<String> inputLines, String sortingType, String outputFile) {
+
+        if ("natural".equals(sortingType)) {
+            if (outputFile == null) {
+                printNaturalSorting(inputLines, "lines");
+            } else {
+                printNaturalSortingToFile(inputLines, "lines", outputFile);
+            }
+            return;
+        }
+        if (outputFile == null) {
+            printByCountSorting(inputLines, "lines");
+        } else {
+            printByCountSortingToFile(inputLines, "lines", outputFile);
+        }
     }
 
     private static List<String> extractTokens(List<String> lines) {
@@ -157,12 +236,24 @@ public class Main {
         return longs;
     }
 
-    static List<String> readInputLines(Scanner scanner) {
+    static List<String> readInputLines(Scanner scanner, String inputFile) {
 
         List<String> lines = new ArrayList<>();
-        while (scanner.hasNextLine()) {
-            lines.add(scanner.nextLine());
+
+        if (inputFile == null) {
+            while (scanner.hasNextLine()) {
+                lines.add(scanner.nextLine());
+            }
+            return lines;
+        } else {
+            try (Scanner fileScanner = new Scanner(new File(inputFile))) {
+                while (fileScanner.hasNextLine()) {
+                    lines.add(fileScanner.nextLine());
+                }
+            } catch (FileNotFoundException e) {
+                System.out.println("Error: " + e.getMessage());
+            }
+            return lines;
         }
-        return lines;
     }
 }
