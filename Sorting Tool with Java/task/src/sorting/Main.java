@@ -1,17 +1,16 @@
 package sorting;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
+import java.io.*;
 import java.util.*;
 
 public class Main {
-    private static final String[] VALID_DATA_TYPES = {"long", "word", "line"};
-    private static final String[] VALID_SORTING_TYPES = {"natural", "byCount"};
+
+    private static final Set<String> VALID_DATA_TYPES = Set.of("long", "word", "line");
+    private static final Set<String> VALID_SORTING_TYPES = Set.of("natural", "byCount");
 
     private record Arguments(String dataType, String sortingType, String inputFile, String outputFile) {}
 
-    public static void main(final String[] args) {
+    public static void main(String[] args) {
 
         Scanner scanner = new Scanner(System.in);
 
@@ -23,17 +22,29 @@ public class Main {
         Arguments arguments = argumentsOptional.get();
         List<String> inputLines = readInputLines(scanner, arguments.inputFile());
 
+        if (arguments.outputFile() != null) {
+            try (PrintWriter writer = new PrintWriter(arguments.outputFile())) {
+                process(arguments, inputLines, writer);
+            } catch (FileNotFoundException e) {
+                System.err.println("Error writing file: " + e.getMessage());
+            }
+        } else {
+            PrintWriter writer = new PrintWriter(System.out);
+            process(arguments, inputLines, writer);
+            writer.flush();
+        }
+    }
+
+    private static void process(Arguments arguments, List<String> inputLines, PrintWriter writer) {
         switch (arguments.dataType()) {
-            case "long" -> processLongs(inputLines, arguments.sortingType(), arguments.outputFile());
-            case "word" -> processWords(inputLines, arguments.sortingType(), arguments.outputFile());
-            case "line" -> processLines(inputLines, arguments.sortingType(), arguments.outputFile());
-            default -> System.out.println("Wrong data type!");
+            case "long" -> processLongs(inputLines, arguments.sortingType(), writer);
+            case "word" -> processWords(inputLines, arguments.sortingType(), writer);
+            case "line" -> processLines(inputLines, arguments.sortingType(), writer);
+            default -> throw new IllegalStateException("Unexpected data type: " + arguments.dataType());
         }
     }
 
     private static Optional<Arguments> getArguments(String[] args) {
-        List<String> dataTypes = List.of(VALID_DATA_TYPES);
-        List<String> sortingTypes = List.of(VALID_SORTING_TYPES);
 
         String dataType = "word";
         String sortingType = "natural";
@@ -41,59 +52,52 @@ public class Main {
         String outputFile = null;
 
         for (int i = 0; i < args.length - 1; i++) {
-            if ("-dataType".equals(args[i])) {
-                if (dataTypes.contains(args[i + 1])) {
-                    dataType = args[i + 1];
-                    i++;
-                } else {
-                    System.out.println("No data type defined!");
-                    return Optional.empty();
+            switch (args[i]) {
+                case "-dataType" -> {
+                    if (VALID_DATA_TYPES.contains(args[i + 1])) {
+                        dataType = args[i + 1];
+                        i++;
+                    } else {
+                        System.out.println("No data type defined!");
+                        return Optional.empty();
+                    }
                 }
-            } else if ("-sortingType".equals(args[i])) {
-                if (sortingTypes.contains(args[i + 1])) {
-                    sortingType = args[i + 1];
-                    i++;
-                } else {
-                    System.out.println("No sorting type defined!");
-                    return Optional.empty();
+                case "-sortingType" -> {
+                    if (VALID_SORTING_TYPES.contains(args[i + 1])) {
+                        sortingType = args[i + 1];
+                        i++;
+                    } else {
+                        System.out.println("No sorting type defined!");
+                        return Optional.empty();
+                    }
                 }
-            } else if ("-inputFile".equals(args[i])) {
-                inputFile = args[i + 1];
-                i++;
-            } else if ("-outputFile".equals(args[i])) {
-                outputFile = args[i + 1];
-                i++;
-            } else {
-                System.out.printf("\"%s\" is not a valid parameter. It will be skipped.%n", args[i]);
+                case "-inputFile" -> {
+                    inputFile = args[i + 1];
+                    i++;
+                }
+                case "-outputFile" -> {
+                    outputFile = args[i + 1];
+                    i++;
+                }
+                default ->  {
+                    System.err.printf("\"%s\" is not a valid parameter. It will be skipped.%n", args[i]);
+                }
             }
         }
         return Optional.of(new Arguments(dataType, sortingType, inputFile, outputFile));
     }
 
-    private static <T extends Comparable<? super T>> void printNaturalSorting(List<T> data, String label) {
+    private static <T extends Comparable<? super T>> void printNaturalSorting(List<T> data, String label, PrintWriter writer) {
 
         int elementsCount = data.size();
-        System.out.printf("Total %s: %d.%n", label, elementsCount);
-        System.out.print("Sorted data:");
+        writer.printf("Total %s: %d.%n", label, elementsCount);
+        writer.print("Sorted data:");
         for (T element : data) {
-            System.out.print(" " + element);
+            writer.print(" " + element);
         }
     }
 
-    private static <T extends Comparable<? super T>> void printNaturalSortingToFile(List<T> data, String label, String outputFile) {
-        try (PrintWriter writer = new PrintWriter(new File(outputFile))) {
-            int elementsCount = data.size();
-            writer.printf("Total %s: %d.%n", label, elementsCount);
-            writer.print("Sorted data:");
-            for (T element : data) {
-                writer.print(" " + element);
-            }
-        } catch (FileNotFoundException e) {
-            System.out.println("Error: " + e.getMessage());
-        }
-    }
-
-    private static <T extends Comparable<? super T>> void printByCountSorting(List<T> data, String label) {
+    private static <T extends Comparable<? super T>> void printByCountSorting(List<T> data, String label, PrintWriter writer) {
 
         int elementsCount = data.size();
 
@@ -110,96 +114,41 @@ public class Main {
                         .thenComparing(Map.Entry::getKey)
         );
 
-        System.out.printf("Total %s: %d.%n", label, elementsCount);
+        writer.printf("Total %s: %d.%n", label, elementsCount);
 
         for (Map.Entry<T, Integer> entry : entries) {
             T element = entry.getKey();
             int count = entry.getValue();
             int percentage = (int) Math.round((double) count / elementsCount * 100);
 
-            System.out.println(element + ": " + count + " time(s), " + percentage + "%");
+            writer.println(element + ": " + count + " time(s), " + percentage + "%");
         }
     }
 
-    private static <T extends Comparable<? super T>> void printByCountSortingToFile(List<T> data, String label, String outputFile) {
-        try (PrintWriter writer = new PrintWriter(new File(outputFile))) {
-            int elementsCount = data.size();
-
-            Map<T, Integer> elementsMap = new HashMap<>();
-
-            for (T element : data) {
-                elementsMap.put(element, elementsMap.getOrDefault(element, 0) + 1);
-            }
-
-            List<Map.Entry<T, Integer>> entries = new ArrayList<>(elementsMap.entrySet());
-
-            entries.sort(
-                    Comparator.comparing(Map.Entry<T, Integer>::getValue)
-                            .thenComparing(Map.Entry::getKey)
-            );
-
-            writer.printf("Total %s: %d.%n", label, elementsCount);
-
-            for (Map.Entry<T, Integer> entry : entries) {
-                T element = entry.getKey();
-                int count = entry.getValue();
-                int percentage = (int) Math.round((double) count / elementsCount * 100);
-
-                writer.println(element + ": " + count + " time(s), " + percentage + "%");
-            }
-        } catch (FileNotFoundException e) {
-            System.out.println("Error: " + e.getMessage());
-        }
-    }
-
-    private static void processLongs(List<String> inputLines, String sortingType, String outputFile) {
+    private static void processLongs(List<String> inputLines, String sortingType, PrintWriter writer) {
 
         if ("natural".equals(sortingType)) {
-            if (outputFile == null) {
-                printNaturalSorting(parseAndSortNumbers(inputLines), "numbers");
-            } else {
-                printNaturalSortingToFile(parseAndSortNumbers(inputLines), "numbers", outputFile);
-            }
-            return;
-        }
-        if (outputFile == null) {
-            printByCountSorting(parseAndSortNumbers(inputLines), "numbers");
+            printNaturalSorting(parseAndSortNumbers(inputLines), "numbers", writer);
         } else {
-            printByCountSortingToFile(parseAndSortNumbers(inputLines), "numbers", outputFile);
+            printByCountSorting(parseAndSortNumbers(inputLines), "numbers", writer);
         }
     }
 
-    private static void processWords(List<String> inputLines, String sortingType, String outputFile) {
+    private static void processWords(List<String> inputLines, String sortingType, PrintWriter writer) {
 
         if ("natural".equals(sortingType)) {
-            if (outputFile == null) {
-                printNaturalSorting(parseWords(inputLines), "words");
-            } else {
-                printNaturalSortingToFile(parseWords(inputLines), "words", outputFile);
-            }
-            return;
-        }
-        if (outputFile == null) {
-            printByCountSorting(parseWords(inputLines), "words");
+            printNaturalSorting(parseWords(inputLines), "words", writer);
         } else {
-            printByCountSortingToFile(parseWords(inputLines), "words", outputFile);
+            printByCountSorting(parseWords(inputLines), "words", writer);
         }
     }
 
-    private static void processLines(List<String> inputLines, String sortingType, String outputFile) {
+    private static void processLines(List<String> inputLines, String sortingType, PrintWriter writer) {
 
         if ("natural".equals(sortingType)) {
-            if (outputFile == null) {
-                printNaturalSorting(inputLines, "lines");
-            } else {
-                printNaturalSortingToFile(inputLines, "lines", outputFile);
-            }
-            return;
-        }
-        if (outputFile == null) {
-            printByCountSorting(inputLines, "lines");
+            printNaturalSorting(inputLines, "lines", writer);
         } else {
-            printByCountSortingToFile(inputLines, "lines", outputFile);
+            printByCountSorting(inputLines, "lines", writer);
         }
     }
 
@@ -229,7 +178,7 @@ public class Main {
             try {
                 longs.add(Long.parseLong(token));
             } catch (NumberFormatException e) {
-                System.out.printf("\"%s\" is not a long. It will be skipped.%n", token);
+                System.err.printf("\"%s\" is not a long. It will be skipped.%n", token);
             }
         }
         longs.sort(null);
@@ -244,16 +193,15 @@ public class Main {
             while (scanner.hasNextLine()) {
                 lines.add(scanner.nextLine());
             }
-            return lines;
         } else {
             try (Scanner fileScanner = new Scanner(new File(inputFile))) {
                 while (fileScanner.hasNextLine()) {
                     lines.add(fileScanner.nextLine());
                 }
             } catch (FileNotFoundException e) {
-                System.out.println("Error: " + e.getMessage());
+                System.err.println("Error: " + e.getMessage());
             }
-            return lines;
         }
+        return lines;
     }
 }
