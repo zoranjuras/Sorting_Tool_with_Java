@@ -131,14 +131,3 @@ The application is structured into clear responsibilities:
 - Unified output via `PrintWriter`
 
 The project was developed incrementally and later refactored to reduce duplication and improve clarity.
-
----
-
-## What I Learned
-
-- Working with Java collections (`List`, `Map`, `Set`)
-- Implementing sorting using `Comparator`
-- Designing reusable generic methods
-- Handling file input/output (`Scanner`, `PrintWriter`)
-- Parsing and validating command-line arguments
-- Refactoring code to improve structure and maintainability
